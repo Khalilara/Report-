@@ -1,0 +1,177 @@
+---
+title: "Sales Performance Report"
+author: "Greate Khalil"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+format:
+  pdf:
+    toc: true
+    number-sections: true
+    colorlinks: true
+    theme: "default"
+execute:
+  echo: false
+  warning: false
+  error: false
+---
+
+```{python}
+#| label: setup
+#| message: false
+#| warning: false
+#| echo: false
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+
+# Style global des graphiques
+plt.style.use('ggplot')
+plt.rcParams.update({'figure.dpi': 120, 'font.size': 10})
+
+# Paramètres de fichiers
+data_file = "C:/Users/hp/Downloads/all (1).xlsx"
+pipe_file = "C:/Users/hp/Downloads/Pipe.xlsx"
+
+# Chargement des données
+all_data = pd.read_excel(data_file)
+all_data.columns = all_data.columns.str.strip()
+pipe_data = pd.read_excel(pipe_file)
+pipe_data.columns = pipe_data.columns.str.strip()
+```
+
+```{python}
+#| label: revenue_by_customer
+total_revenue = all_data['Revenue($)'].sum()
+by_type = all_data.groupby('Customer Typ')['Revenue($)'].sum().reindex(['EBT','SMB'], fill_value=0)
+
+# Table récapitulative
+summary_df = pd.DataFrame({
+    'Customer Type': by_type.index,
+    'Revenue ($)': by_type.values
+})
+# Updated syntax for newer pandas versions
+display(summary_df.style.format({'Revenue ($)': '${:,.2f}'}))
+```
+
+```{python}
+#| fig-cap: "Figure 1: Revenue by Customer Type"
+fig, ax = plt.subplots(figsize=(6,4))
+bars = ax.bar(by_type.index, by_type.values, color=['#1f77b4','#ff7f0e'])
+ax.set_ylabel('Revenue ($)')
+ax.set_title('Revenue by Customer Type')
+for b in bars:
+    ax.text(b.get_x()+b.get_width()/2, b.get_height()+0.01*by_type.values.max(),
+            f'${b.get_height():,.0f}', ha='center', va='bottom')
+plt.tight_layout()
+```
+
+```{python}
+#| label: smb_channel
+channels = ['HELIAQ','Inmac','Econocom','Computacenter','Orange','Bouygues','SFR']
+all_data['Channel_Grouped'] = np.where(all_data['Channel'].isin(channels),
+                                       all_data['Channel'], 'unmanaged')
+smb = all_data[all_data['Customer Typ']=='SMB']
+rev_channel = smb.groupby('Channel_Grouped')['Revenue($)'].sum().sort_values(ascending=False)
+rev_df = rev_channel.reset_index().rename(columns={'Channel_Grouped':'Channel','Revenue($)':'Revenue'})
+display(rev_df.style.format({'Revenue':'${:,.0f}'}))
+```
+
+```{python}
+#| fig-cap: "Figure 2: SMB Revenue by Channel"
+fig, ax = plt.subplots(figsize=(7,4))
+bars = ax.bar(rev_df['Channel'], rev_df['Revenue'], edgecolor='white')
+ax.set_xticklabels(rev_df['Channel'], rotation=45, ha='right')
+ax.set_title('SMB Revenue by Channel')
+for b in bars:
+    ax.text(b.get_x()+b.get_width()/2, b.get_height(), f'${b.get_height():,.0f}',
+            ha='center', va='bottom')
+plt.tight_layout()
+```
+
+```{python}
+#| fig-cap: "Figure 3: SMB Channel Revenue Share"
+fig, ax = plt.subplots(figsize=(5,5))
+rev_channel.plot.pie(ax=ax, autopct='%1.1f%%', wedgeprops={'edgecolor':'white'})
+ax.set_ylabel('')
+ax.set_title('SMB Channel Revenue Share')
+plt.tight_layout()
+```
+
+```{python}
+#| label: knox_analysis
+knox = smb[smb['Product Type']=='Knox SW']
+if not knox.empty:
+    sub_counts = knox['Prod Sub'].value_counts()
+    sub_counts_df = sub_counts.reset_index().rename(columns={'index':'Prod Sub','Prod Sub':'Count'})
+    display(sub_counts_df.style.format({'Count':'{:d}'}))
+else:
+    print('No Knox SW SMB data available')
+```
+
+```{python}
+#| fig-cap: "Figure 4: Knox SW Product Distribution for SMB"
+if not knox.empty:
+    fig, ax = plt.subplots(figsize=(6,4))
+    bars = ax.barh(sub_counts.index, sub_counts.values)
+    ax.set_xlabel('Number of Deals')
+    ax.set_title('Knox SW Distribution (SMB)')
+    for b in bars:
+        ax.text(b.get_width()+0.5, b.get_y()+b.get_height()/2,
+                f'{int(b.get_width())}', va='center')
+    plt.tight_layout()
+```
+
+```{python}
+#| label: landing
+ca_app = smb['Revenue($)'].sum()
+pipe_smb = pipe_data[pipe_data['Type end customer']=='SMB']
+ca_pipe = pipe_smb['Value (€)'].sum()
+landing_df = pd.DataFrame({
+    'Source': ['App (Existing)', 'Pipe (Q2)'],
+    'Value': ['${:,.2f}'.format(ca_app), '€{:,.2f}'.format(ca_pipe)]
+})
+# Fixed: hide_index is deprecated in newer pandas versions
+display(landing_df)
+```
+
+```{python}
+#| fig-cap: "Figure 5: Landing Projection"
+fig, ax = plt.subplots(figsize=(6,4))
+values_usd = [ca_app, ca_pipe * 1.10]
+ax.bar(['App','Pipe'], values_usd, color=['#4c72b0','#55a868'])
+ax.set_title('SMB Landing Projection ($)')
+for i, v in enumerate(values_usd):
+    ax.text(i, v, f'${v:,.0f}', ha='center', va='bottom')
+plt.tight_layout()
+```
+
+```{python}
+#| label: top_deals
+if not pipe_smb.empty:
+    top5 = pipe_smb.nlargest(5, 'Value (€)')[['END CUSTOMER','SOLUTION','Value (€)','Probabilité','Rollout Date']]
+    top5['Value (€)'] = top5['Value (€)'].map('€{:,.2f}'.format)
+    top5['Probabilité'] = top5['Probabilité'].map(lambda x: f"{int(100*x)}%" if pd.notnull(x) else 'N/A')
+    # Fixed: hide_index is deprecated in newer pandas versions
+    display(top5)
+else:
+    print('No SMB pipeline deals found')
+```
+
+```{python}
+#| fig-cap: "Figure 6: Top 5 SMB Pipeline Deals"
+if not pipe_smb.empty:
+    top_plot = pipe_smb.nlargest(5, 'Value (€)').sort_values('Value (€)')
+    labels = top_plot['END CUSTOMER'] + " – " + top_plot['SOLUTION'].str.slice(0,20) + "..."
+    values = top_plot['Value (€)']
+    probs = top_plot['Probabilité'].fillna(0)
+
+    fig, ax = plt.subplots(figsize=(8,5))
+    bars = ax.barh(labels, values, edgecolor='white')
+    ax.set_xlabel('Valeur (€)')
+    ax.set_title('Top 5 des deals SMB dans le pipeline Q2')
+    for i, b in enumerate(bars):
+        v = b.get_width()
+        p = probs.iloc[i]
+        label = f"€{v:,.0f} ({int(p*100) if p else 'N/A'}%)"
+        ax.text(v + 0.02*v, b.get_y()+b.get_height()/2, label, va='center', ha='left', fontsize=9)
+    plt.tight_layout()
+```
