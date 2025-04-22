@@ -1,6 +1,6 @@
 ---
-title: "Sales Performance Report"
-author: "Greate Khalil"
+title: "Weekly Channel Solution Team Performance Report"
+author: "Channel Technical Team"
 date: today
 echo: false 
 format:
@@ -21,8 +21,8 @@ format:
     header-includes:
       - \KOMAoption{captions}{tableheading}
 
----
 
+---
 \newpage
 
 ## Executive Summary
@@ -56,7 +56,6 @@ pipe_data.columns = pipe_data.columns.str.strip()
 
 ```{python}
 import pandas as pd
-from report_helpers import highlight_text
 
 ```
 \newpage
@@ -65,41 +64,48 @@ from report_helpers import highlight_text
 
 The following section provides a snapshot of our total revenue and its distribution across major customer segments. This overview helps contextualize the detailed analyses that follow.
 ```{python}
+#| fig-cap: " Total Revenue and Distribution by Customer Type"
 total_revenue = all_data['Revenue($)'].sum()
 by_type = all_data.groupby('Customer Typ')['Revenue($)'].sum().reindex(['EBT','SMB'], fill_value=0)
 
-fig, (ax_left, ax_right) = plt.subplots(1, 2, figsize=(10, 4), 
-                                      gridspec_kw={'width_ratios': [1, 2]})
+fig, (ax_left, ax_right) = plt.subplots(1, 2, figsize=(18, 8), 
+                                        gridspec_kw={'width_ratios': [1, 2]})
 
+# Left panel – Revenue text
 ax_left.axis('off')
 ax_left.text(0.5, 0.5, 
-            f'Total Global Revenue\n${total_revenue:,.0f}', 
-            ha='center', va='center', 
-            fontsize=14, fontweight='bold',
-            bbox=dict(facecolor='white', edgecolor='lightgray', boxstyle='round'))
+             f'Total Global Revenue\n€{total_revenue:,.0f}', 
+             ha='center', va='center', 
+             fontsize=30, fontweight='bold',
+             bbox=dict(facecolor='white', edgecolor='lightgray', boxstyle='round,pad=1.0'))
 
-# Right panel - Bar Chart
+# Right panel – Bar chart
 bars = ax_right.bar(by_type.index, by_type.values, color=['#1f77b4','#ff7f0e'])
-ax_right.set_ylabel('Revenue ($)', fontweight='bold')
-ax_right.set_title('Revenue by Customer Type', fontweight='bold')
+ax_right.set_ylabel('Revenue (€)', fontweight='bold', fontsize=16)
+ax_right.set_title('Revenue by Customer Type', fontweight='bold', fontsize=18)
+ax_right.tick_params(axis='x', labelsize=23)
+ax_right.tick_params(axis='y', labelsize=23)
 
-# Add value labels on bars
+# Add value labels
 for b in bars:
-    ax_right.text(b.get_x() + b.get_width()/2, b.get_height(),
-                f'${b.get_height():,.0f}', 
-                ha='center', va='bottom',
-                fontsize=10)
+    ax_right.text(b.get_x() + b.get_width()/2, b.get_height() + total_revenue * 0.01,
+                  f'€{b.get_height():,.0f}', 
+                  ha='center', va='bottom',
+                  fontsize=20)
 
 plt.tight_layout(pad=3.0)
+
 ```
+
 As shown above, the Enterprise Business Team (EBT) and Small-Medium Business (SMB) segments have distinct contribution patterns, with EBT representing a significant portion of our revenue. This aligns with our business model, where enterprise clients typically generate higher average transaction values.
 
 \newpage
 
 
 ## SMB Revenue Analysis
- The SMB segment represents a key growth opportunity for our business. This section analyzes the distribution of SMB revenue across product types and reseller channels.
+The SMB segment represents a key growth opportunity for our business. This section analyzes the distribution of SMB revenue across product types and reseller channels.
 ```{python}
+#| fig-cap: " SMB Revenue Distribution by Product Type"
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -117,7 +123,7 @@ fig = plt.figure(figsize=(8, 6))
 
 # 3. Centralized pie chart
 ax = fig.add_subplot(111)
-ax.set_position([0.25, 0.1, 0.5, 0.8])  # Centrage horizontal
+ax.set_position([0.25, 0.1, 0.5, 0.8])  # Horizontal centering
 
 # 4. Pie chart
 colors = plt.cm.Blues(np.linspace(0.4, 0.8, len(product_rev)))
@@ -153,43 +159,41 @@ plt.show()
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# 1. Chargement des données
+# 1. Loading data
 all_data = pd.read_excel("C:/Users/hp/Downloads/all (1).xlsx")
 all_data.columns = all_data.columns.str.strip()
 
-# 2. Préparation des données
+# 2. Data preparation
 smb_data = all_data[all_data['Customer Typ'] == 'SMB']
 reseller_rev = smb_data.groupby(['Product Type', 'Reseller Type'])['Revenue($)'].sum().reset_index()
 
-# 3. Fonction générique pour afficher les tableaux avec format et total
-def afficher_tableau(data, titre):
+# 3. Generic function to display tables with formatting and totals
+def display_table(data, title):
     formatted_data = data.copy()
-    formatted_data['Revenue($)'] = formatted_data['Revenue($)'].apply(lambda x: f"${x:,.0f}")
+    formatted_data['Revenue($)'] = formatted_data['Revenue($)'].apply(lambda x: f"€{x:,.0f}")
     
     total = data['Revenue($)'].sum()
     total_row = pd.DataFrame([{
         'Reseller Type': 'TOTAL', 
-        'Revenue($)': f"${total:,.0f}"
+        'Revenue(€)': f"€{total:,.0f}"
     }])
     
-    # Affichage du titre et du tableau combiné
+    # Display title and combined table
     combined = pd.concat([formatted_data[['Reseller Type', 'Revenue($)']], total_row], ignore_index=True)
-    print(f"\n{titre}")
+    print(f"\n{title}")
     display(combined)
 
-# 4. Tableau Knox SW
+# 4. Knox SW Table
 knox_data = reseller_rev[reseller_rev['Product Type'].str.contains('Knox SW', case=False, na=False)]
-afficher_tableau(knox_data, 'Répartition Knox SW par Revendeur')
+display_table(knox_data, 'Knox SW Distribution by Reseller')
 
-# 5. Tableau Service
+# 5. Service Table
 service_data = reseller_rev[reseller_rev['Product Type'].str.contains('Service', case=False, na=False)]
-afficher_tableau(service_data, 'Répartition Service par Revendeur')
-
-
-
+display_table(service_data, 'Service Distribution by Reseller')
 ```
 
 The SMB revenue distribution chart highlights key product categories driving our small and medium business revenue. Knox SW products represent a significant portion of our SMB revenue, demonstrating strong market adoption of our software security solutions. The accompanying tables break down revenue performance by reseller type, allowing us to identify our most effective distribution partners within each product category.
+
 
 \newpage
 
@@ -200,24 +204,25 @@ This section evaluates how our various sales channels are performing against qua
 #| message: false 
 #| warning: false 
 #| echo: false
+#| fig-cap: " Actual vs Target Revenue by Channel (SMB)"
 
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-# 1. Chargement des données
+# 1. Loading data
 all_data = pd.read_excel("C:/Users/hp/Downloads/all (1).xlsx")
 all_data.columns = all_data.columns.str.strip()
 
-# Préparation des données pour le graphique
+# Data preparation for the chart
 channels = ['HELIAQ','Inmac','Econocom','Computacenter','Orange','Bouygues','SFR']
 all_data['Channel_Grouped'] = np.where(all_data['Channel'].isin(channels), 
                                       all_data['Channel'], 'unmanaged')
 smb = all_data
 rev_channel = smb.groupby('Channel_Grouped')['Revenue($)'].sum().sort_values(ascending=False)
-rev_df = rev_channel.reset_index().rename(columns={'Channel_Grouped':'Channel','Revenue($)':'Revenue'})
+rev_df = rev_channel.reset_index().rename(columns={'Channel_Grouped':'Channel','Revenue(€)':'Revenue'})
 
-# Chiffre d'affaires attendu par channel
+# Expected revenue by channel
 expected_revenue = {
     'HELIAQ': 85000,
     'Inmac': 50000,
@@ -229,37 +234,38 @@ expected_revenue = {
     'unmanaged': 377000
 }
 
-# Ajout de la colonne de chiffre d'affaires attendu
+# Adding expected revenue column
 rev_df['Expected Revenue'] = rev_df['Channel'].map(expected_revenue)
 
-# Création d'un seul graphique avec échelle logarithmique
+# Creating a single chart with logarithmic scale
 plt.figure(figsize=(12, 7))
-bars = plt.bar(rev_df['Channel'], rev_df['Revenue'], color='skyblue', edgecolor='white', label='Chiffre Réel')
-plt.plot(rev_df['Channel'], rev_df['Expected Revenue'], color='orange', marker='o', linewidth=2, label='Objectif')
+bars = plt.bar(rev_df['Channel'], rev_df['Revenue($)'], color='skyblue', edgecolor='white', label='Actual Revenue')
+plt.plot(rev_df['Channel'], rev_df['Expected Revenue'], color='orange', marker='o', linewidth=2, label='Target')
 
-# Ajout des valeurs sur les barres
+# Adding values on the bars
 for b in bars:
-    plt.text(b.get_x() + b.get_width()/2, b.get_height(), f'${b.get_height():,.0f}',
+    plt.text(b.get_x() + b.get_width()/2, b.get_height(), f'€{b.get_height():,.0f}',
             ha='center', va='bottom', fontsize=9)
 
-# Configuration du graphique
-plt.title("Chiffre d'affaires Réel vs Objectif par Canal (SMB) - Échelle logarithmique", fontsize=14)
-plt.ylabel("Montant ($) - échelle log", fontsize=12)
+# Chart configuration
+plt.title("Actual vs Target Revenue by Channel (SMB) - Logarithmic Scale", fontsize=14)
+plt.ylabel("Amount (€) - log scale", fontsize=12)
 plt.yscale('log')
 plt.xticks(rotation=45, ha='right')
 plt.grid(axis='y', linestyle='--', alpha=0.7)
 plt.legend()
 plt.tight_layout()
 plt.show()
+
 #| label: smb_channel
 channels = ['HELIAQ','Inmac','Econocom','Computacenter','Orange','Bouygues','SFR']
 all_data['Channel_Grouped'] = np.where(all_data['Channel'].isin(channels),
                                        all_data['Channel'], 'unmanaged')
 smb = all_data
 rev_channel = smb.groupby('Channel_Grouped')['Revenue($)'].sum().sort_values(ascending=False)
-rev_df = rev_channel.reset_index().rename(columns={'Channel_Grouped':'Channel','Revenue($)':'Revenue'})
+rev_df = rev_channel.reset_index().rename(columns={'Channel_Grouped':'Channel','Revenue(€)':'Revenue'})
 
-# Chiffre d'affaires attendu par channel
+# Expected revenue by channel
 expected_revenue = {
     'HELIAQ': 85000,
     'Inmac': 50000,
@@ -270,43 +276,44 @@ expected_revenue = {
     'SFR': 50000,
     'unmanaged': 377000
 }
-
-# Ajout de la colonne de chiffre d'affaires attendu
+# Adding expected revenue column
 rev_df['Expected Revenue'] = rev_df['Channel'].map(expected_revenue)
 
-# Calcul de l'écart (delta)
-rev_df['Delta'] = ((rev_df['Revenue']) /rev_df['Expected Revenue'] ) * 100
+# Calculating the delta (percentage)
+rev_df['Delta'] = (rev_df['Revenue($)'] / rev_df['Expected Revenue']) * 100
 
-# Affichage du tableau formaté
+# Displaying formatted table without any decimals
 display(
-    rev_df.style.format({
-        'Revenue': '{:,.0f}$',
-        'Objectif  Trimestriel': '{:,.0f}$',
-        'Delta': '{:,.0f}%'
-    }).applymap(
-        lambda x: 'color: red' if isinstance(x, (int, float)) and x < 0 else 'color: green',
-        subset=['Delta']
-    )
+    rev_df.style
+         .format({
+             'Revenue($)':       '{:,.0f}€',
+             'Expected Revenue': '{:,.0f}€',
+             'Delta':            '{:,.0f}%'
+         })
+         .applymap(
+             lambda x: 'color: red' if isinstance(x, (int, float)) and x < 0 else 'color: green',
+             subset=['Delta']
+         )
 )
 
-
 ```
+
 Our channel performance analysis reveals mixed results across our partner ecosystem. The table above shows each channel's performance relative to quarterly targets. Notably, Orange remains our strongest managed channel by revenue volume, while HELIAQ is showing exceptional performance against their target.
 The unmanaged channel still represents a significant portion of our overall revenue, suggesting an opportunity to transition more of these deals to our managed partner network. This would improve our ability to forecast and provide enhanced customer service through trained channel partners.
 
----
+
 
 ```{python}
 #| label: prep_knox
 #| echo: false
 
-# Définition de knox avec vérification des colonnes
+# Defining knox with column verification
 if 'Product Type' in smb.columns:
     knox = smb[smb['Product Type'] == 'Knox SW'].copy()
-    knox['Prod Sub'] = knox['Prod Sub'].str.strip()  # Nettoyage supplémentaire
+    knox['Prod Sub'] = knox['Prod Sub'].str.strip()  # Additional cleaning
 else:
-    knox = pd.DataFrame()  # DataFrame vide si colonne absente
-    print("Avertissement: Colonne 'Product Type' non trouvée")
+    knox = pd.DataFrame()  # Empty DataFrame if column not found
+    print("Warning: Column 'Product Type' not found")
 ```
 ```{=typst}
 #v(-20pt)
@@ -315,28 +322,29 @@ else:
 :::: {layout="[0.33, 0.66]"}
 
 ::: {#firstcol}
+---
 
 \newpage
 
 ## Product Analysis: Knox SW Solutions
 Knox SW solutions represent a significant portion of our revenue, particularly in the SMB segment. Below we analyze the distribution of Knox SW product variants to identify our strongest offerings.
----
+
 ```{python}
 #| label: knox_analysis
 #| output: asis
 
 if not knox.empty:
-    # Création du dataframe avec les bonnes colonnes
+    # Creating dataframe with correct columns
     sub_counts = knox['Prod Sub'].value_counts()
     sub_counts_df = sub_counts.reset_index()
-    sub_counts_df.columns = ['Prod Sub', 'Count']  # Correction cruciale ici
+    sub_counts_df.columns = ['Prod Sub', 'Count']  # Critical correction here
     
-    # Formatage adapté au type de données
+    # Formatting adapted to data type
     
 ```
 
 ```{python}
-#| fig-cap: "Figure 4: Knox SW Product Distribution for SMB"
+#| fig-cap: "Knox SW Product Distribution for SMB"
 if not knox.empty:
     fig, ax = plt.subplots(figsize=(6,4))
     bars = ax.barh(sub_counts.index, sub_counts.values)
@@ -347,77 +355,92 @@ if not knox.empty:
                 f'{int(b.get_width())}', va='center')
     plt.tight_layout()
 ```
-```{=typst}
-#v(-20pt)
-```
+
 The horizontal bar chart above displays the distribution of Knox SW product variants across our SMB deals. This analysis helps identify which specific security solutions are gaining the most traction in the small and medium business market. Product teams can use this information to refine marketing strategies and sales enablement resources for top-performing variants.
+---
 
 \newpage
 
 ## Pipeline Analysis for Q2 2025
 This section examines our pipeline for the upcoming quarter, providing insight into projected revenue streams and major deals that will drive our business in Q2 2025.
+
 ### Channel Pipeline
 
-```{python} 
+```{python}
+#| fig-cap: "Q2 2025 SMB Pipeline by Partner Type"
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-# Style global des graphiques
+# Increase base font size for overall readability
 plt.style.use('ggplot')
-plt.rcParams.update({'figure.dpi': 120, 'font.size': 10})
+plt.rcParams.update({'figure.dpi': 120, 'font.size': 12})
 
-# Paramètres de fichiers
-pipe_file = "C:/Users/hp/Downloads/Pipe.xlsx"
-
-# Chargement des données
-pipe_data = pd.read_excel(pipe_file)
+# Load and prepare data
+pipe_data = pd.read_excel("C:/Users/hp/Downloads/Pipe.xlsx")
 pipe_data.columns = pipe_data.columns.str.strip()
-
-# Filtre commun pour Q2 2025
 pipe_q2 = pipe_data[pipe_data['Rollout Date'] == "Q2 2025"]
+partner_revenue = (
+    pipe_q2[pipe_q2['Type end customer'] == 'SMB']
+    .groupby('Type Partenaire')['Value (€)']
+    .sum()
+    .reset_index()
+)
 
-# Calcul CA SMB
-pipe_smb_ca = pipe_q2[pipe_q2['Type end customer'] == 'SMB']['Value (€)'].sum()
+# Create figure with two panels
+fig, (ax_left, ax_right) = plt.subplots(
+    1, 2, figsize=(18, 9), gridspec_kw={'width_ratios': [1, 2]}
+)
 
-# Création de la figure avec deux sous-graphiques
-fig, (ax_left, ax_right) = plt.subplots(1, 2, figsize=(10, 4), gridspec_kw={'width_ratios': [1, 2]})
-
-# Panneau gauche: Affichage du CA
+# Left panel: summary
 ax_left.axis('off')
-ax_left.text(0.5, 0.5, 
-            f'Chiffre d\'affaire SMB Q2 2025\n€{pipe_smb_ca:,.0f}',
-            ha='center', va='center', 
-            fontsize=12, transform=ax_left.transAxes)
+ax_left.text(
+    0.5, 0.5,
+    f'SMB Revenue Q2 2025\n€{partner_revenue["Value (€)"].sum():,.0f}',
+    ha='center', va='center',
+    fontsize=28, fontweight='bold',
+    transform=ax_left.transAxes
+)
 
-# Panneau droit: Diagramme en barres (uniquement Q2 2025)
-partner_revenue = pipe_q2[pipe_q2['Type end customer'] == 'SMB'].groupby('Type Partenaire')['Value (€)'].sum().reset_index()
+# Right panel: bar chart
+bars = ax_right.bar(
+    partner_revenue['Type Partenaire'],
+    partner_revenue['Value (€)']
+)
 
-bars = ax_right.bar(partner_revenue['Type Partenaire'], partner_revenue['Value (€)'])
-ax_right.set_title('Répartition du CA par type de partenaire (Q2 2025)')
-ax_right.set_xlabel('Type de partenaire')
-ax_right.set_ylabel('CA (€)')
-plt.sca(ax_right)
-plt.xticks(rotation=45)
+# Titles and labels with increased font sizes
+ax_right.set_title(
+    'Revenue Distribution by Partner Type (Q2 2025)',
+    fontsize=24, fontweight='bold'
+)
+ax_right.set_xlabel('Partner Type', fontsize=20)
+ax_right.set_ylabel('Revenue (€)', fontsize=20)
 
-# Ajout des valeurs sur les barres
+# Tick label sizes
+ax_right.tick_params(axis='x', labelsize=16, rotation=45)
+ax_right.tick_params(axis='y', labelsize=16)
+
+# Value labels on bars
 for bar in bars:
     height = bar.get_height()
-    ax_right.text(bar.get_x() + bar.get_width()/2., height,
-                 f'{height:,.0f} €',
-                 ha='center', va='bottom')
+    ax_right.text(
+        bar.get_x() + bar.get_width() / 2, height,
+        f'€{height:,.0f}',
+        ha='center', va='bottom',
+        fontsize=25, fontweight='medium'
+    )
 
-plt.tight_layout()
+plt.tight_layout(pad=3.0)
 plt.show()
 
 ```
-Our Q2 2025 pipeline for the SMB segment shows promising growth potential with a projected revenue of €{pipe_smb_ca:,.0f}. The distribution across partner types indicates a healthy mix of channel relationships, with VAR (Value-Added Resellers) contributing significantly to our pipeline. This aligns with our strategy to leverage specialized partners who can provide additional value to our SMB customers.
+
+Our Q2 2025 pipeline for the SMB segment shows promising growth, the distribution across partner types indicates a healthy mix of channel relationships, with Top Resellers contributing significantly to our pipeline. This aligns with our strategy to leverage specialized partners who can provide additional value to our SMB customers.
 
 \newpage
 
 ## Revenue Projection Analysis
 
----
 ```{python}
 #| label: landing
 ca_app = all_data[all_data['Customer Typ'] == 'SMB']['Revenue($)'].sum()
@@ -425,21 +448,21 @@ pipe_smb = pipe_data[pipe_data['Type end customer']=='SMB']
 pipe_smb_q2 = pipe_smb[pipe_smb["Rollout Date"] == "Q2 2025"]
 ca_pipe = pipe_smb_q2['Value (€)'].sum()
 landing_df = pd.DataFrame({
-    'Source': ['Commande Conclue', 'Pipe (Q2)'],
-    'Value': ['${:,.2f}'.format(ca_app), '€{:,.2f}'.format(ca_pipe)]
+    'Source': ['Closed Deals', 'Pipeline (Q2)','Total'],
+    'Value': ['€{:,.2f}'.format(ca_app), '€{:,.2f}'.format(ca_pipe),'€{:,.2f}'.format(ca_pipe+ca_app)]
 })
 # Fixed: hide_index is deprecated in newer pandas versions
 display(landing_df)
 ```
 
 ```{python}
-#| fig-cap: "Figure 5: Landing Projection"
+#| fig-cap: " SMB Revenue Projection (€)"
 fig, ax = plt.subplots(figsize=(6,4))
 values_usd = [ca_app, ca_pipe * 1.10]
-ax.bar(['CA','Pipe'], values_usd, color=['#4c72b0','#55a868'])
-ax.set_title('SMB Landing Projection ($)')
+ax.bar(['Revenue','Pipeline'], values_usd, color=['#4c72b0','#55a868'])
+ax.set_title('SMB Landing Projection (€)')
 for i, v in enumerate(values_usd):
-    ax.text(i, v, f'${v:,.0f}', ha='center', va='bottom')
+    ax.text(i, v, f'€{v:,.0f}', ha='center', va='bottom')
 plt.tight_layout()
 ```
 
@@ -449,11 +472,13 @@ plt.tight_layout()
 
 ```{python}
 #| label: top_deals
+import pandas as pd
+from IPython.display import display, Markdown
+
 if not pipe_smb.empty:
     top5 = pipe_smb[pipe_smb["Rollout Date"] == "Q2 2025"].nlargest(5, 'Value (€)')[['END CUSTOMER','SOLUTION','Value (€)','Probabilité','Rollout Date']]
     top5['Value (€)'] = top5['Value (€)'].map('€{:,.2f}'.format)
     
-    # Fixed: More robust error handling for the Probabilité column
     def format_probability(x):
         try:
             if pd.notna(x):
@@ -461,16 +486,17 @@ if not pipe_smb.empty:
             else:
                 return 'N/A'
         except (ValueError, TypeError):
-            # Handle the case where x is not a number
             return str(x) if pd.notna(x) else 'N/A'
     
     top5['Probabilité'] = top5['Probabilité'].apply(format_probability)
     
-    # Display the dataframe
-    display(top5)
+    # Display without index
+    display(Markdown(top5.to_markdown(index=False)))
 else:
     print('No SMB pipeline deals found')
+
 ```
+
 The table above highlights the top 5 opportunities in our Q2 2025 pipeline by value. These key deals represent our most significant growth opportunities for the upcoming quarter and should be prioritized by our sales teams. The probability ratings provide an indication of the likelihood of closing each opportunity, allowing for more accurate revenue forecasting.
 ```{=typst}
 #v(-20pt)
